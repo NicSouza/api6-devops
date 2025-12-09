@@ -1,4 +1,3 @@
----
 name: CI
 
 on:
@@ -19,20 +18,22 @@ jobs:
         with:
           fetch-depth: 0
 
+      # 1. CORREÇÃO: Instalamos o PNPM primeiro
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 9.10.0
+
+      # 2. Agora configuramos o Node (o cache vai funcionar pois o pnpm já existe)
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'pnpm'
 
-      - name: Install PNPM
-        run: |
-          corepack enable
-          corepack prepare pnpm@9.10 --activate
-          pnpm --version
-
+      # 3. Instala as dependências do Node/Nx
       - name: Install Nx and Dependencies
         run: pnpm install --frozen-lockfile
 
+      # --- A partir daqui é a configuração do Python (Mantida igual) ---
       - name: Install Poetry
         shell: bash
         run: |
@@ -51,6 +52,7 @@ jobs:
           poetry lock
           poetry install --no-root
 
+      # --- Comandos do Nx para rodar Build e Testes ---
       - name: Set Shas for Nx Cache
         uses: nrwl/nx-set-shas@v4
 
