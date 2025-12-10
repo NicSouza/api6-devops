@@ -5,7 +5,6 @@ from api.routes import create_blueprints
 from db.mongo import MongoDB
 
 def create_app():
-    # Tenta conectar no banco
     db = None
     try:
         print("Tentando conectar ao banco...")
@@ -17,54 +16,42 @@ def create_app():
 
     app = Flask(__name__)
 
-    # CORS TOTAL
     CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
     @app.route("/", methods=["GET"])
     def home():
         return jsonify({
-            "version": "3.0 (DEBUG MODE)",
+            "version": "4.0 (EMERGENCY ACCESS)",
             "status": "online",
             "db_connected": db is not None
         })
 
-    # --- LOGIN DE DEBUG ---
     def do_login():
-        # 1. Responde OPTIONS na hora (Correção CORS)
         if request.method == 'OPTIONS':
             return jsonify({"status": "ok"}), 200
 
         data = request.get_json(silent=True) or {}
 
-        # 2. DEFINA A SENHA AQUI (Sem variáveis de ambiente para não ter erro)
-        CORRECT_EMAIL = "admin@teste.com"
+        print(f"DEBUG COMPLETO DO JSON: {data}")
+
+        req_password = data.get("password")
+
         CORRECT_PASS = "123456"
 
-        # 3. Pega o que veio do site
-        req_user = data.get("email") or data.get("username")
-        req_pass = data.get("password")
-
-        # 4. IMPRIME NO LOG DO RENDER (Para a gente ver o erro)
-        print(f"--- TENTATIVA DE LOGIN ---")
-        print(f"Recebido User: '{req_user}'")
-        print(f"Recebido Pass: '{req_pass}'")
-        print(f"Esperado User: '{CORRECT_EMAIL}'")
-        print(f"Esperado Pass: '{CORRECT_PASS}'")
-        print(f"--------------------------")
-
-        # 5. Comparação direta
-        if req_user == CORRECT_EMAIL and req_pass == CORRECT_PASS:
+        if str(req_password) == CORRECT_PASS:
+            print("LOGIN SUCESSO! Senha correta.")
             return jsonify({
-                "token": "admin-token-final-presentation",
+                "token": "admin-token-emergency-access",
                 "user": {
                     "id": "1",
-                    "name": "Admin",
-                    "email": CORRECT_EMAIL,
+                    "name": "Admin Apresentacao",
+                    "email": "admin@teste.com",
                     "role": "admin"
                 }
             }), 200
 
-        return jsonify({"error": "Credenciais invalidas"}), 401
+        print("LOGIN FALHA! Senha incorreta.")
+        return jsonify({"error": "Senha incorreta"}), 401
 
     app.add_url_rule('/login', view_func=do_login, methods=['POST', 'OPTIONS'])
     app.add_url_rule('/auth/login', view_func=do_login, methods=['POST', 'OPTIONS'])
