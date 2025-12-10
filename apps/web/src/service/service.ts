@@ -2,9 +2,13 @@ import axios from 'axios';
 import { Page, PageRequest, emptyPage } from '../schemas/pagination';
 import { getLocalStorageData } from '../store/storage';
 
-export const API_BASE_URL = 'http://127.0.0.1:5000';
-export const AUTH_BASE_URL = 'http://127.0.0.1:3000';
-export const API_PREDICTION_URL = 'http://127.0.0.1:9000';
+// --- MUDANÇA PARA DEVOPS: URLs Dinâmicas ---
+// O sistema agora verifica se existe uma variável de ambiente (Produção).
+// Se não existir, usa o endereço local (Desenvolvimento).
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:5000';
+export const AUTH_BASE_URL = import.meta.env.VITE_AUTH_BASE_URL || 'http://127.0.0.1:3000';
+export const API_PREDICTION_URL = import.meta.env.VITE_API_PREDICTION_URL || 'http://127.0.0.1:9000';
+// -------------------------------------------
 
 const headers = {
   headers: {
