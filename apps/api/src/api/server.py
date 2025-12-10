@@ -18,9 +18,15 @@ def create_app():
 
     CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
+    @app.route("/", methods=["GET"])
+    def home():
+        return jsonify({
+            "version": "6.0 (404 HANDLER)",
+            "status": "online"
+        })
 
-    @app.before_request
-    def intercept_login():
+    @app.errorhandler(404)
+    def handle_404(e):
         if request.path.endswith('login'):
 
             if request.method == 'OPTIONS':
@@ -34,11 +40,11 @@ def create_app():
                 data = request.get_json(silent=True) or {}
                 password = str(data.get("password"))
 
-                print(f"LOGIN INTERCEPTADO. Senha recebida: {password}")
+                print(f"LOGIN RECUPERADO DO 404. Senha: {password}")
 
                 if password == "123456":
                     return jsonify({
-                        "token": "admin-token-emergency",
+                        "token": "admin-token-phoenix",
                         "user": {
                             "id": "1",
                             "name": "Admin Apresentacao",
@@ -49,14 +55,8 @@ def create_app():
                 else:
                     return jsonify({"error": "Senha incorreta"}), 401
 
-    # -------------------------------------------
-
-    @app.route("/", methods=["GET"])
-    def home():
-        return jsonify({
-            "version": "5.0 (NUCLEAR INTERCEPTOR)",
-            "status": "online"
-        })
+        return jsonify({"error": "Rota nao encontrada"}), 404
+    # ---------------------------------------
 
     if db is not None:
         try:
