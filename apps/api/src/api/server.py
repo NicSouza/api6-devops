@@ -1,3 +1,4 @@
+import os
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from api.routes import create_blueprints
@@ -5,36 +6,54 @@ from db.mongo import MongoDB
 from dev import print_routes
 
 def create_app():
+    # Tenta conexão com banco de dados
     try:
         db = MongoDB.connect()
         MongoDB.test()
         print("✅ Banco de Dados conectado!")
     except Exception as e:
-        print(f"⚠️ Aviso: Banco não conectado ({e}). Rodando em modo limitado.")
+        print(f"⚠️ Aviso: Conexão com banco falhou ({e})")
         db = None
 
     app = Flask(__name__)
 
+    # Configuração de CORS (Permite acesso da Vercel)
     CORS(app, resources={r"/*": {"origins": "*"}})
 
     @app.route("/")
     def home():
-        status_banco = "Online" if db is not None else "Offline (Modo Mock)"
         return jsonify({
-            "message": "API Online! 🚀",
-            "database_status": status_banco
+            "status": "online",
+            "service": "api-backend",
+            "database": "connected" if db is not None else "disconnected"
         })
 
-    @app.route("/auth/login", methods=["POST", "OPTIONS"])
-    def fake_login():
-        return jsonify({
-            "token": "token-login",
-            "user": {
-                "id": "1",
-                "name": "Admin DevOps",
-                "email": "admin@teste.com"
-            }
-        }), 200
+    # --- ROTA DE AUTENTICAÇÃO (BOOTSTRAP ADMIN) ---
+    # Valida credenciais baseadas em variáveis de ambiente seguras.
+    @app.route("/auth/login", methods=["POST"])
+    def login():
+        data = request.get_json()
+
+        # Pega credenciais seguras do ambiente (ou usa padrão para teste local)
+        env_email = os.getenv("ADMIN_EMAIL", "admin@teste.com")
+        env_pass = os.getenv("ADMIN_PASS", "123456")
+
+        req_email = data.get("email")
+        req_password = data.get("password")
+
+        if req_email == env_email and req_password == env_pass:
+            return jsonify({
+                "token": "session-valid-admin-token",
+                "user": {
+                    "id": "admin-01",
+                    "name": "Administrator",
+                    "email": env_email,
+                    "role": "admin"
+                }
+            }), 200
+
+        return jsonify({"error": "Credenciais inválidas"}), 401
+    # --------------------------------------------------
 
     if db is not None:
         try:
