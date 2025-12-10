@@ -1,0 +1,186 @@
+{
+  "name": "db",
+  "targets": {
+    "install": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["lock"],
+      "options": {
+        "command": "poetry install"
+      }
+    },
+    "init": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["install"],
+      "options": {
+        "command": "nx run-many -p db -t init-pg init-mongo init-keys"
+      }
+    },
+    "init-postgres": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["install", "postgres-up"],
+      "options": {
+        "command": "poetry run python {projectRoot}/src/db/postgres.py"
+      }
+    },
+    "init-keys": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["install", "keys-up"],
+      "options": {
+        "command": "poetry run python {projectRoot}/src/db/keys.py"
+      }
+    },
+    "init-mongo": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["install"],
+      "options": {
+        "command": "poetry run python {projectRoot}/src/db/mongo.py"
+      }
+    },
+    "seeds": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["install", "init"],
+      "options": {
+        "command": "nx run-many -p db -t pg-seeds mongo-seeds keys-seeds"
+      }
+    },
+    "postgres-seeds": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["init-postgres", "init-keys"],
+      "options": {
+        "command": "poetry run python {projectRoot}/seeds/postgres_seeds.py"
+      }
+    },
+    "mongo-seeds": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["install", "mongo-up"],
+      "options": {
+        "command": "poetry run python {projectRoot}/seeds/mongo_seeds.py"
+      }
+    },
+    "pg-backup": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["install"],
+      "options": {
+        "command": "poetry run python {projectRoot}/src/db/daily_backup.py"
+      }
+    },
+    "pg-restore": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["install"],
+      "options": {
+        "command": "poetry run python {projectRoot}/src/db/restore_backup.py"
+      }
+    },
+    "up": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "nx run-many -p db -t pg-up mongo-up keys-up"
+      }
+    },
+    "down": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "nx run-many -p db -t pg-down mongo-down keys-down"
+      }
+    },
+    "postgres-up": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "docker-compose -f {projectRoot}/docker-compose.yml up -d postgres --build"
+      }
+    },
+    "keys-up": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "docker-compose -f {projectRoot}/docker-compose.yml up -d keys --build"
+      }
+    },
+    "mongo-up": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "docker-compose -f {projectRoot}/docker-compose.yml up -d mongo"
+      }
+    },
+    "postgres-down": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "docker-compose -f {projectRoot}/docker-compose.yml down"
+      }
+    },
+    "mongo-down": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "docker-compose -f {projectRoot}/docker-compose.yml down"
+      }
+    },
+    "pg-up": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "nx run db:postgres-up"
+      }
+    },
+    "pg-down": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "nx run db:postgres-down"
+      }
+    },
+    "init-pg": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "nx run db:init-postgres"
+      }
+    },
+    "pg-seeds": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "nx run db:postgres-seeds"
+      }
+    },
+    "lint": {
+      "executor": "@nxlv/python:flake8",
+      "dependsOn": ["install"],
+      "options": {
+        "outputFile": "{projectRoot}/reports/pylint.txt"
+      }
+    },
+    "fix-lint": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["install"],
+      "options": {
+        "command": "poetry run black ."
+      }
+    },
+    "test": {
+      "executor": "@nxlv/python:run-commands",
+      "dependsOn": ["install"],
+      "options": {
+        "command": "poetry run pytest --cache-clear tests/",
+        "cwd": "{projectRoot}"
+      },
+      "env": {
+        "POETRY_VIRTUALENVS_IN_PROJECT": "true"
+      }
+    },
+    "test-integration": {
+      "executor": "@nxlv/python:run-commands",
+      "dependsOn": ["install"],
+      "options": {
+        "command": "poetry run pytest --cache-clear tests/",
+        "cwd": "{projectRoot}",
+        "env": {
+          "TEST_MONGO_IMAGE": "mongo:5",
+          "MONGO_URI": "mongodb://localhost:28017",
+          "POETRY_VIRTUALENVS_IN_PROJECT": "true"
+        }
+      }
+    },
+    "lock": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "poetry lock && cd ../.. && poetry lock",
+        "cwd": "{projectRoot}"
+      }
+    }
+  }
+}
