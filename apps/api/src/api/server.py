@@ -11,7 +11,10 @@ def create_app():
     MongoDB.test()
 
     app = Flask(__name__)
-    CORS(app)
+
+    # --- MUDANÇA DEVOPS: Libera acesso total para o Frontend na Vercel ---
+    CORS(app, resources={r"/*": {"origins": "*"}})
+    # ---------------------------------------------------------------------
 
     @app.route("/")
     def home():
