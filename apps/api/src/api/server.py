@@ -13,7 +13,7 @@ def create_app():
         MongoDB.test()
         print("✅ Banco conectado com sucesso!")
     except Exception as e:
-        print(f"⚠️ Banco OFF (Rodando em modo limitado): {e}")
+        print(f"⚠️ Banco OFF: {e}")
 
     app = Flask(__name__)
 
@@ -22,12 +22,15 @@ def create_app():
     @app.route("/", methods=["GET"])
     def home():
         return jsonify({
-            "version": "2.1 (Login Corrigido)",
+            "version": "2.2 (OPTIONS FIX)",
             "status": "online",
             "db_connected": db is not None
         })
 
     def do_login():
+        if request.method == 'OPTIONS':
+            return jsonify({"status": "ok"}), 200
+
         data = request.get_json(silent=True) or {}
 
         env_email = os.getenv("ADMIN_EMAIL", "admin@teste.com")
@@ -36,7 +39,7 @@ def create_app():
         req_email = data.get("email") or data.get("username")
         req_password = data.get("password")
 
-        print(f"Tentativa de login recebida -> User: {req_email} | Senha: {req_password}")
+        print(f"Login POST -> User: {req_email}")
 
         if req_email and req_email == env_email and req_password == env_pass:
             return jsonify({
@@ -49,7 +52,7 @@ def create_app():
                 }
             }), 200
 
-        return jsonify({"error": "Usuário ou senha incorretos"}), 401
+        return jsonify({"error": "Dados incorretos"}), 401
 
     app.add_url_rule('/login', view_func=do_login, methods=['POST', 'OPTIONS'])
     app.add_url_rule('/auth/login', view_func=do_login, methods=['POST', 'OPTIONS'])
@@ -59,7 +62,7 @@ def create_app():
             for blueprint in create_blueprints(db):
                 app.register_blueprint(blueprint)
         except Exception as e:
-            print(f"Erro ao registrar blueprints: {e}")
+            print(f"Erro blueprints: {e}")
 
     return app
 
