@@ -6,61 +6,60 @@ from db.mongo import MongoDB
 from dev import print_routes
 
 def create_app():
-    # Tenta conexão com banco de dados
+    db = None
     try:
+        print("Tentando conectar ao banco...")
         db = MongoDB.connect()
         MongoDB.test()
-        print("✅ Banco de Dados conectado!")
+        print("✅ Banco conectado com sucesso!")
     except Exception as e:
-        print(f"⚠️ Aviso: Conexão com banco falhou ({e})")
-        db = None
+        print(f"⚠️ Banco OFF (Rodando em modo limitado): {e}")
 
     app = Flask(__name__)
 
-    # Configuração de CORS (Permite acesso da Vercel)
-    CORS(app, resources={r"/*": {"origins": "*"}})
+    CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
-    @app.route("/")
+    @app.route("/", methods=["GET"])
     def home():
         return jsonify({
+            "version": "2.1 (Login Corrigido)",
             "status": "online",
-            "service": "api-backend",
-            "database": "connected" if db is not None else "disconnected"
+            "db_connected": db is not None
         })
 
-    # --- ROTA DE AUTENTICAÇÃO (BOOTSTRAP ADMIN) ---
-    # Valida credenciais baseadas em variáveis de ambiente seguras.
-    @app.route("/auth/login", methods=["POST"])
-    def login():
-        data = request.get_json()
+    def do_login():
+        data = request.get_json(silent=True) or {}
 
-        # Pega credenciais seguras do ambiente (ou usa padrão para teste local)
         env_email = os.getenv("ADMIN_EMAIL", "admin@teste.com")
         env_pass = os.getenv("ADMIN_PASS", "123456")
 
-        req_email = data.get("email")
+        req_email = data.get("email") or data.get("username")
         req_password = data.get("password")
 
-        if req_email == env_email and req_password == env_pass:
+        print(f"Tentativa de login recebida -> User: {req_email} | Senha: {req_password}")
+
+        if req_email and req_email == env_email and req_password == env_pass:
             return jsonify({
-                "token": "session-valid-admin-token",
+                "token": "admin-token-super-seguro-123",
                 "user": {
-                    "id": "admin-01",
-                    "name": "Administrator",
+                    "id": "1",
+                    "name": "Admin",
                     "email": env_email,
                     "role": "admin"
                 }
             }), 200
 
-        return jsonify({"error": "Credenciais inválidas"}), 401
-    # --------------------------------------------------
+        return jsonify({"error": "Usuário ou senha incorretos"}), 401
+
+    app.add_url_rule('/login', view_func=do_login, methods=['POST', 'OPTIONS'])
+    app.add_url_rule('/auth/login', view_func=do_login, methods=['POST', 'OPTIONS'])
 
     if db is not None:
         try:
             for blueprint in create_blueprints(db):
                 app.register_blueprint(blueprint)
         except Exception as e:
-            print(f"Erro ao registrar rotas: {e}")
+            print(f"Erro ao registrar blueprints: {e}")
 
     return app
 
